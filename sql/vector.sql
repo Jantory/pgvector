@@ -365,6 +365,13 @@ CREATE ACCESS METHOD hnsw TYPE INDEX HANDLER hnswhandler;
 
 COMMENT ON ACCESS METHOD hnsw IS 'hnsw index access method';
 
+CREATE FUNCTION qkdtreehandler(internal) RETURNS index_am_handler
+	AS 'MODULE_PATHNAME' LANGUAGE C;
+
+CREATE ACCESS METHOD qkdtree TYPE INDEX HANDLER qkdtreehandler;
+
+COMMENT ON ACCESS METHOD qkdtree IS 'quantized multi-way kd-tree index access method';
+
 -- access method private functions
 
 CREATE FUNCTION ivfflat_halfvec_support(internal) RETURNS internal
@@ -444,6 +451,11 @@ CREATE OPERATOR CLASS vector_l1_ops
 	FOR TYPE vector USING hnsw AS
 	OPERATOR 1 <+> (vector, vector) FOR ORDER BY float_ops,
 	FUNCTION 1 l1_distance(vector, vector);
+
+CREATE OPERATOR CLASS vector_l2_ops
+	FOR TYPE vector USING qkdtree AS
+	OPERATOR 1 <-> (vector, vector) FOR ORDER BY float_ops,
+	FUNCTION 1 vector_l2_squared_distance(vector, vector);
 
 -- halfvec type
 

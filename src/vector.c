@@ -14,6 +14,7 @@
 #include "lib/stringinfo.h"
 #include "libpq/pqformat.h"
 #include "port.h"				/* for strtof() */
+#include "qkdtree.h"
 #include "sparsevec.h"
 #include "utils/array.h"
 #include "utils/float.h"
@@ -62,6 +63,7 @@ _PG_init(void)
 	HalfvecInit();
 	HnswInit();
 	IvfflatInit();
+	QKDTreeInit();
 }
 
 /*

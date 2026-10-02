@@ -202,6 +202,7 @@ Supported index types are:
 
 - [HNSW](#hnsw)
 - [IVFFlat](#ivfflat)
+- [QKDTree](#qkdtree)
 
 ## HNSW
 
@@ -420,6 +421,31 @@ The phases for IVFFlat are:
 4. `loading tuples`
 
 Note: `%` is only populated during the `loading tuples` phase
+
+## QKDTree
+
+QKDTree implements a multi-way kd-tree for embeddings that have already been
+quantized to integer coordinates. Each internal node stores its point count and
+coordinate sum. Searches keep the `beam_width` children whose means are closest
+to the query, then compute exact squared L2 distance inside the selected leaves.
+
+The indexed `vector` and query vector must contain integer-valued coordinates in
+the signed 16-bit range. The index supports up to 768 dimensions.
+
+```sql
+CREATE INDEX ON items USING qkdtree (embedding vector_l2_ops)
+    WITH (branch_factor = 4, leaf_size = 32);
+```
+
+Set the beam width for a query (8 by default):
+
+```sql
+SET LOCAL qkdtree.beam_width = 8;
+SELECT * FROM items ORDER BY embedding <-> '[3,1,2]' LIMIT 5;
+```
+
+A larger beam width visits more leaves and can improve recall at the cost of
+additional distance calculations.
 
 ## Filtering
 
