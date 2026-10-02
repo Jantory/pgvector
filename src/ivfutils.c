@@ -5,6 +5,7 @@
 #include "fmgr.h"
 #include "halfutils.h"
 #include "halfvec.h"
+#include "intvec.h"
 #include "ivfflat.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
@@ -319,6 +320,12 @@ HalfvecItemSize(int dimensions)
 }
 
 static Size
+IntvecItemSize(int dimensions)
+{
+	return INTVEC_SIZE(dimensions);
+}
+
+static Size
 BitItemSize(int dimensions)
 {
 	return VARBITTOTALLEN(dimensions);
@@ -346,6 +353,19 @@ HalfvecUpdateCenter(Pointer v, int dimensions, float *x)
 
 	for (int i = 0; i < dimensions; i++)
 		vec->x[i] = Float4ToHalfUnchecked(x[i]);
+}
+
+static void
+IntvecUpdateCenter(Pointer v, int dimensions, float *x)
+{
+	IntVector  *vec = (IntVector *) v;
+
+	SET_VARSIZE(vec, INTVEC_SIZE(dimensions));
+	vec->dim = dimensions;
+	vec->unused = 0;
+
+	for (int i = 0; i < dimensions; i++)
+		vec->x[i] = (int16) roundf(x[i]);
 }
 
 static void
@@ -388,6 +408,18 @@ HalfvecSumCenter(Pointer v, int dimensions, float *x)
 	/* Auto-vectorized on aarch64 */
 	for (int i = 0; i < dimensions; i++)
 		x[i] += HalfToFloat4(vec->x[i]);
+}
+
+static void
+IntvecSumCenter(Pointer v, int dimensions, float *x)
+{
+	IntVector  *vec = (IntVector *) v;
+
+	/* Safety check */
+	IvfflatCheckExpectedDim(dimensions, vec->dim);
+
+	for (int i = 0; i < dimensions; i++)
+		x[i] += (float) vec->x[i];
 }
 
 static void
@@ -438,6 +470,22 @@ ivfflat_halfvec_support(PG_FUNCTION_ARGS)
 		.itemSize = HalfvecItemSize,
 		.updateCenter = HalfvecUpdateCenter,
 		.sumCenter = HalfvecSumCenter
+	};
+
+	PG_RETURN_POINTER(&typeInfo);
+}
+
+FUNCTION_PREFIX PG_FUNCTION_INFO_V1(ivfflat_intvec_support);
+Datum
+ivfflat_intvec_support(PG_FUNCTION_ARGS)
+{
+	static const IvfflatTypeInfo typeInfo = {
+		.maxDimensions = IVFFLAT_MAX_DIM * 2,
+		.dimensions = intvec_vector_dims,
+		.normalize = NULL,
+		.itemSize = IntvecItemSize,
+		.updateCenter = IntvecUpdateCenter,
+		.sumCenter = IntvecSumCenter
 	};
 
 	PG_RETURN_POINTER(&typeInfo);

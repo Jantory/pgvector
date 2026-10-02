@@ -374,7 +374,24 @@ Supported types are:
 
 - `vector` - up to 2,000 dimensions
 - `halfvec` - up to 4,000 dimensions
+- `intvec` - up to 4,000 signed 16-bit dimensions (L2 distance only)
 - `bit` - up to 64,000 dimensions
+
+For quantized integer embeddings, store the quantized codes directly and use
+the `intvec_l2_ops` operator class. IVFFlat rounds each k-means center back to
+signed 16-bit coordinates, and point-to-center and point-to-query L2 distances
+use integer coordinates.
+
+```sql
+CREATE TABLE quantized_items (id bigserial PRIMARY KEY, embedding intvec(3));
+CREATE INDEX ON quantized_items USING ivfflat (embedding intvec_l2_ops)
+    WITH (lists = 100);
+
+SET ivfflat.probes = 10;
+SELECT * FROM quantized_items
+ORDER BY embedding <-> '[12,-7,3]'::intvec
+LIMIT 10;
+```
 
 ### Query Options
 

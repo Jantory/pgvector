@@ -1,0 +1,95 @@
+SET enable_seqscan = off;
+-- type and casts
+SELECT '[1,-2,32767]'::intvec(3);
+    intvec    
+--------------
+ [1,-2,32767]
+(1 row)
+
+SELECT vector_dims('[1,-2,3]'::intvec);
+ vector_dims 
+-------------
+           3
+(1 row)
+
+SELECT '[1,2,3]'::intvec <-> '[4,6,3]'::intvec;
+ ?column? 
+----------
+        5
+(1 row)
+
+SELECT ARRAY[1,-2,3]::intvec;
+  array   
+----------
+ [1,-2,3]
+(1 row)
+
+SELECT '[1,-2,3]'::vector::intvec;
+  intvec  
+----------
+ [1,-2,3]
+(1 row)
+
+SELECT '[1,-2,3]'::intvec::vector;
+  vector  
+----------
+ [1,-2,3]
+(1 row)
+
+SELECT '[1.5]'::intvec;
+ERROR:  invalid input syntax for type intvec: "[1.5]"
+LINE 1: SELECT '[1.5]'::intvec;
+               ^
+SELECT '[32768]'::intvec;
+ERROR:  "32768" is out of range for type intvec
+LINE 1: SELECT '[32768]'::intvec;
+               ^
+SELECT '[1,2]'::intvec(3);
+ERROR:  expected 3 dimensions, not 2
+-- L2 index
+CREATE TABLE t (id integer, val intvec(3));
+INSERT INTO t VALUES
+	(1, '[0,0,0]'),
+	(2, '[1,2,3]'),
+	(3, '[1,1,1]'),
+	(4, NULL);
+CREATE INDEX ON t USING ivfflat (val intvec_l2_ops) WITH (lists = 1);
+INSERT INTO t VALUES (5, '[1,2,4]');
+SELECT id, val FROM t ORDER BY val <-> '[3,3,3]';
+ id |   val   
+----+---------
+  2 | [1,2,3]
+  5 | [1,2,4]
+  3 | [1,1,1]
+  1 | [0,0,0]
+(4 rows)
+
+SELECT COUNT(*) FROM (SELECT * FROM t ORDER BY val <-> (SELECT NULL::intvec)) t2;
+ count 
+-------
+     4
+(1 row)
+
+DELETE FROM t WHERE id = 3;
+VACUUM t;
+SELECT id, val FROM t ORDER BY val <-> '[3,3,3]';
+ id |   val   
+----+---------
+  2 | [1,2,3]
+  5 | [1,2,4]
+  1 | [0,0,0]
+(3 rows)
+
+DROP TABLE t;
+-- dimensions
+CREATE TABLE t (val intvec(4000));
+CREATE INDEX ON t USING ivfflat (val intvec_l2_ops);
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+DROP TABLE t;
+CREATE TABLE t (val intvec(4001));
+CREATE INDEX ON t USING ivfflat (val intvec_l2_ops);
+ERROR:  column cannot have more than 4000 dimensions for ivfflat index
+DROP TABLE t;
+RESET enable_seqscan;

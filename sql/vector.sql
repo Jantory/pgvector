@@ -379,6 +379,11 @@ CREATE FUNCTION ivfflat_halfvec_support(internal) RETURNS internal
 
 COMMENT ON FUNCTION ivfflat_halfvec_support(internal) IS 'ivfflat halfvec support';
 
+CREATE FUNCTION ivfflat_intvec_support(internal) RETURNS internal
+	AS 'MODULE_PATHNAME' LANGUAGE C;
+
+COMMENT ON FUNCTION ivfflat_intvec_support(internal) IS 'ivfflat intvec support';
+
 CREATE FUNCTION ivfflat_bit_support(internal) RETURNS internal
 	AS 'MODULE_PATHNAME' LANGUAGE C;
 
@@ -456,6 +461,79 @@ CREATE OPERATOR CLASS vector_l2_ops
 	FOR TYPE vector USING qkdtree AS
 	OPERATOR 1 <-> (vector, vector) FOR ORDER BY float_ops,
 	FUNCTION 1 vector_l2_squared_distance(vector, vector);
+
+-- intvec type (signed 16-bit quantized vectors)
+
+CREATE TYPE intvec;
+
+CREATE FUNCTION intvec_in(cstring, oid, integer) RETURNS intvec
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_out(intvec) RETURNS cstring
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_typmod_in(cstring[]) RETURNS integer
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_recv(internal, oid, integer) RETURNS intvec
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_send(intvec) RETURNS bytea
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE TYPE intvec (
+	INPUT     = intvec_in,
+	OUTPUT    = intvec_out,
+	TYPMOD_IN = intvec_typmod_in,
+	RECEIVE   = intvec_recv,
+	SEND      = intvec_send,
+	STORAGE   = external
+);
+
+CREATE FUNCTION l2_distance(intvec, intvec) RETURNS float8
+	AS 'MODULE_PATHNAME', 'intvec_l2_distance' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION vector_dims(intvec) RETURNS integer
+	AS 'MODULE_PATHNAME', 'intvec_vector_dims' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_l2_squared_distance(intvec, intvec) RETURNS float8
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec(intvec, integer, boolean) RETURNS intvec
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION vector_to_intvec(vector, integer, boolean) RETURNS intvec
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION intvec_to_vector(intvec, integer, boolean) RETURNS vector
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION array_to_intvec(integer[], integer, boolean) RETURNS intvec
+	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE CAST (intvec AS intvec)
+	WITH FUNCTION intvec(intvec, integer, boolean) AS IMPLICIT;
+
+CREATE CAST (vector AS intvec)
+	WITH FUNCTION vector_to_intvec(vector, integer, boolean) AS ASSIGNMENT;
+
+CREATE CAST (intvec AS vector)
+	WITH FUNCTION intvec_to_vector(intvec, integer, boolean) AS ASSIGNMENT;
+
+CREATE CAST (integer[] AS intvec)
+	WITH FUNCTION array_to_intvec(integer[], integer, boolean) AS ASSIGNMENT;
+
+CREATE OPERATOR <-> (
+	LEFTARG = intvec, RIGHTARG = intvec, PROCEDURE = l2_distance,
+	COMMUTATOR = '<->'
+);
+
+CREATE OPERATOR CLASS intvec_l2_ops
+	DEFAULT FOR TYPE intvec USING ivfflat AS
+	OPERATOR 1 <-> (intvec, intvec) FOR ORDER BY float_ops,
+	FUNCTION 1 intvec_l2_squared_distance(intvec, intvec),
+	FUNCTION 3 l2_distance(intvec, intvec),
+	FUNCTION 5 ivfflat_intvec_support(internal);
 
 -- halfvec type
 
