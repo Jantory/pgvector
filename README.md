@@ -446,11 +446,12 @@ quantized to integer coordinates. Each internal node stores its point count and
 coordinate sum. Searches keep the `beam_width` children whose means are closest
 to the query, then compute exact squared L2 distance inside the selected leaves.
 
-The indexed `vector` and query vector must contain integer-valued coordinates in
-the signed 16-bit range. The index supports up to 768 dimensions.
+The indexed column and query must use `intvec`, whose coordinates are signed
+16-bit integers. The index supports up to 768 dimensions.
 
 ```sql
-CREATE INDEX ON items USING qkdtree (embedding vector_l2_ops)
+CREATE TABLE items (id bigserial PRIMARY KEY, embedding intvec(384));
+CREATE INDEX ON items USING qkdtree (embedding intvec_l2_ops)
     WITH (branch_factor = 4, leaf_size = 32);
 ```
 

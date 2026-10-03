@@ -6,6 +6,12 @@
 #include "commands/vacuum.h"
 #include "fmgr.h"
 #include "qkdtree.h"
+
+#if PG_VERSION_NUM >= 160000
+#define FUNCTION_PREFIX
+#else
+#define FUNCTION_PREFIX PGDLLEXPORT
+#endif
 #include "utils/guc.h"
 #include "utils/float.h"
 #include "utils/relcache.h"

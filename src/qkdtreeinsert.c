@@ -388,7 +388,7 @@ qkdtreeinsert(Relation index, Datum *values, bool *isnull,
 {
 	QKDTreeMetaPageData meta;
 	QKDTreePointTuple point;
-	Vector	   *vector;
+	IntVector *vector;
 	MemoryContext insert_context;
 	MemoryContext old_context;
 
@@ -401,10 +401,10 @@ qkdtreeinsert(Relation index, Datum *values, bool *isnull,
 	old_context = MemoryContextSwitchTo(insert_context);
 
 	QKDTreeReadMeta(index, &meta);
-	vector = DatumGetVector(values[0]);
+	vector = DatumGetIntVector(values[0]);
 	point = palloc0(QKDTreePointSize(meta.dimensions));
 	point->heap_tid = *heap_tid;
-	QKDTreeQuantizeVector(vector, meta.dimensions, point->coords);
+	QKDTreeCopyCoordinates(vector, meta.dimensions, point->coords);
 
 	/* Serialize structural changes, just as the Python object does. */
 	LockPage(index, QKDTREE_METAPAGE_BLKNO, ExclusiveLock);

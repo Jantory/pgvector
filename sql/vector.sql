@@ -457,11 +457,6 @@ CREATE OPERATOR CLASS vector_l1_ops
 	OPERATOR 1 <+> (vector, vector) FOR ORDER BY float_ops,
 	FUNCTION 1 l1_distance(vector, vector);
 
-CREATE OPERATOR CLASS vector_l2_ops
-	FOR TYPE vector USING qkdtree AS
-	OPERATOR 1 <-> (vector, vector) FOR ORDER BY float_ops,
-	FUNCTION 1 vector_l2_squared_distance(vector, vector);
-
 -- intvec type (signed 16-bit quantized vectors)
 
 CREATE TYPE intvec;
@@ -534,6 +529,11 @@ CREATE OPERATOR CLASS intvec_l2_ops
 	FUNCTION 1 intvec_l2_squared_distance(intvec, intvec),
 	FUNCTION 3 l2_distance(intvec, intvec),
 	FUNCTION 5 ivfflat_intvec_support(internal);
+
+CREATE OPERATOR CLASS intvec_l2_ops
+	DEFAULT FOR TYPE intvec USING qkdtree AS
+	OPERATOR 1 <-> (intvec, intvec) FOR ORDER BY float_ops,
+	FUNCTION 1 intvec_l2_squared_distance(intvec, intvec);
 
 -- halfvec type
 

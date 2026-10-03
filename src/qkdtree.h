@@ -11,7 +11,7 @@
 #include "storage/itemptr.h"
 #include "utils/rel.h"
 
-#include "vector.h"
+#include "intvec.h"
 
 #define QKDTREE_MAGIC_NUMBER 0x514B4454U
 #define QKDTREE_VERSION 1
@@ -111,7 +111,7 @@ Size		QKDTreePointSize(int dimensions);
 int64	   *QKDTreeNodeSum(QKDTreeNode node);
 int64	   *QKDTreeNodeBoundaries(QKDTreeNode node);
 BlockNumber *QKDTreeNodeChildren(QKDTreeNode node);
-void		QKDTreeQuantizeVector(Vector *vector, int dimensions, int16 *coords);
+void		QKDTreeCopyCoordinates(IntVector *vector, int dimensions, int16 *coords);
 QKDTreeNode QKDTreeMakeNode(int node_kind, int dimensions, int nchildren,
 								 int split_dim, int64 count,
 								 BlockNumber first_data_block,

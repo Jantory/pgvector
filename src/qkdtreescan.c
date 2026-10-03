@@ -277,8 +277,7 @@ qkdtreegettuple(IndexScanDesc scan, ScanDirection direction)
 
 	if (so->first)
 	{
-		Vector	   *query_vector;
-		int16	   *query;
+		IntVector *query_vector;
 
 		pgstat_count_index_scan(scan->indexRelation);
 #if PG_VERSION_NUM >= 180000
@@ -293,10 +292,13 @@ qkdtreegettuple(IndexScanDesc scan, ScanDirection direction)
 		if (!IsMVCCSnapshot(scan->xs_snapshot))
 			elog(ERROR, "non-MVCC snapshots are not supported with qkdtree");
 
-		query_vector = DatumGetVector(scan->orderByData->sk_argument);
-		query = palloc(sizeof(int16) * so->dimensions);
-		QKDTreeQuantizeVector(query_vector, so->dimensions, query);
-		SearchTree(scan, query);
+		query_vector = DatumGetIntVector(scan->orderByData->sk_argument);
+		if (query_vector->dim != so->dimensions)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_EXCEPTION),
+					 errmsg("expected %d dimensions, not %d",
+							so->dimensions, query_vector->dim)));
+		SearchTree(scan, query_vector->x);
 		so->first = false;
 
 		if ((Pointer) query_vector != DatumGetPointer(scan->orderByData->sk_argument))

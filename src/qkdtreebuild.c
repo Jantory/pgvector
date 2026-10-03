@@ -282,18 +282,18 @@ BuildCallback(Relation index, ItemPointer tid, Datum *values,
 			  bool *isnull, bool tuple_is_alive, void *opaque)
 {
 	QKDTreeBuildState *state = (QKDTreeBuildState *) opaque;
-	Vector	   *vector;
+	IntVector *vector;
 	QKDTreePointTuple point;
 	Size		point_size;
 
 	if (isnull[0])
 		return;
 
-	vector = DatumGetVector(values[0]);
+	vector = DatumGetIntVector(values[0]);
 	point_size = QKDTreePointSize(state->dimensions);
 	point = palloc0(point_size);
 	point->heap_tid = *tid;
-	QKDTreeQuantizeVector(vector, state->dimensions, point->coords);
+	QKDTreeCopyCoordinates(vector, state->dimensions, point->coords);
 
 	if (state->point_count == state->point_capacity)
 	{

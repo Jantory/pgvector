@@ -1,7 +1,5 @@
 #include "postgres.h"
 
-#include <math.h>
-
 #include "access/generic_xlog.h"
 #include "access/itup.h"
 #include "qkdtree.h"
@@ -52,38 +50,14 @@ QKDTreeNodeChildren(QKDTreeNode node)
 }
 
 void
-QKDTreeQuantizeVector(Vector *vector, int dimensions, int16 *coords)
+QKDTreeCopyCoordinates(IntVector *vector, int dimensions, int16 *coords)
 {
 	if (vector->dim != dimensions)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_EXCEPTION),
 				 errmsg("expected %d dimensions, not %d", dimensions, vector->dim)));
 
-	for (int i = 0; i < dimensions; i++)
-	{
-		float		value = vector->x[i];
-		float		integer_value;
-
-		if (!isfinite(value))
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_EXCEPTION),
-					 errmsg("qkdtree requires finite quantized coordinates")));
-
-		integer_value = truncf(value);
-		if (value != integer_value)
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_EXCEPTION),
-					 errmsg("qkdtree requires integer-valued quantized vectors"),
-					 errdetail("Coordinate %d has value %g.", i + 1, value)));
-
-		if (integer_value < PG_INT16_MIN || integer_value > PG_INT16_MAX)
-			ereport(ERROR,
-					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-					 errmsg("qkdtree coordinate is outside the int16 range"),
-					 errdetail("Coordinate %d has value %g.", i + 1, value)));
-
-		coords[i] = (int16) integer_value;
-	}
+	memcpy(coords, vector->x, sizeof(int16) * dimensions);
 }
 
 QKDTreeNode
